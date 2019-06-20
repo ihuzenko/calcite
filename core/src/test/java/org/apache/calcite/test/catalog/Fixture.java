@@ -49,6 +49,7 @@ final class Fixture {
   final RelDataType empRecordType;
   final RelDataType empListType;
   final ObjectSqlType addressType;
+  final RelDataType structType;
 
   Fixture(RelDataTypeFactory typeFactory) {
     intType = typeFactory.createSqlType(SqlTypeName.INTEGER);
@@ -120,6 +121,9 @@ final class Fixture {
                 new RelDataTypeFieldImpl("ZIP", 2, intType),
                 new RelDataTypeFieldImpl("STATE", 3, varchar20Type)),
             RelDataTypeComparability.NONE);
+    structType = typeFactory.createStructType(
+        Arrays.asList(varchar10Type, intType),
+        Arrays.asList("name", "age"));
   }
 }
 

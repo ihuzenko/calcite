@@ -411,6 +411,10 @@ public class MockCatalogReaderSimple extends MockCatalogReader {
     }
     registerTable(struct10View);
     registerTablesWithRollUp(salesSchema, fixture);
+
+    MockTable strTable = MockTable.create(this, structTypeSchema, "STR_TABLE", false, 3);
+    strTable.addColumn("STR", fixture.structType);
+    registerTable(strTable);
     return this;
 
   }

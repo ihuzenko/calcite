@@ -2694,6 +2694,18 @@ public class SqlToRelConverterTest extends SqlToRelTestBase {
     sql(sql).ok();
   }
 
+  @Test
+  public void testStructFieldsCollectedBackAfterFlattening() {
+    final String sql = "select str from struct.str_table";
+    sql(sql).convertsTo(
+        // projects `name` nested field of requested struct as `str`, so query return
+        // type is VARCHAR(10) instead of expected STRUCT<name:VARCHAR(10),age:INTEGER>
+        "\nLogicalProject(STR=[$0])\n"
+            + "  LogicalProject(STR=[$0.name], STR1=[$0.age])\n"
+            + "    LogicalTableScan(table=[[CATALOG, STRUCT, STR_TABLE]])\n"
+    );
+  }
+
   /**
    * Test case for <a href="https://issues.apache.org/jira/browse/CALCITE-2962">[CALCITE-2962]
    * RelStructuredTypeFlattener generates wrong types for nested column when flattenProjection</a>.
