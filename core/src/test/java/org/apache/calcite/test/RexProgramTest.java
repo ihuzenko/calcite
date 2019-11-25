@@ -1738,6 +1738,20 @@ public class RexProgramTest extends RexProgramBuilderBase {
         "OR(null, <>(0, ?0.int0))",
         "<>(0, ?0.int0)",
         "true");
+
+    // (a=1 or a=2 or (arr[1]>4 and arr[1]<3 and a=3)) => a=1 or a=2
+    final RelDataType intArrayType = typeFactory.createArrayType(intType, -1);
+    final RexInputRef ref0 = rexBuilder.makeInputRef(intType, 0);
+    final RexInputRef ref3 = rexBuilder.makeInputRef(intArrayType, 3);
+    final RexCall itm1 = (RexCall) rexBuilder.makeCall(intType, SqlStdOperatorTable.ITEM,
+        ImmutableList.of(ref3, literal1));
+    simplify = this.simplify.withParanoid(false);
+    checkSimplifyFilter(
+        or(eq(ref0, literal1), eq(ref0, literal2),
+            and(gt(itm1, literal4), lt(itm1, literal3), eq(ref0, literal3))),
+        "OR(=($0, 1), =($0, 2))"
+    );
+    simplify = simplify.withParanoid(true);
   }
 
   @Test public void testSimplifyNotAnd() {

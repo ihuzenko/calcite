@@ -22,6 +22,7 @@ import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelOptRuleOperand;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.RelTraitSet;
+import org.apache.calcite.plan.hep.HepRelVertex;
 import org.apache.calcite.rel.RelCollationTraitDef;
 import org.apache.calcite.rel.RelDistributionTraitDef;
 import org.apache.calcite.rel.RelNode;
@@ -38,6 +39,7 @@ import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RelBuilderFactory;
 import org.apache.calcite.util.Util;
 
+import java.util.Collection;
 import java.util.Collections;
 import java.util.function.Predicate;
 
@@ -167,7 +169,8 @@ public class FilterProjectTransposeRule extends RelOptRule {
           .replaceIfs(RelDistributionTraitDef.INSTANCE,
               () -> Collections.singletonList(
                       input.getTraitSet().getTrait(RelDistributionTraitDef.INSTANCE)));
-      newFilterRel = filter.copy(traitSet, input, simplifyFilterCondition(newCondition, call));
+      newCondition = simplifyFilterCondition(newCondition, call);
+      newFilterRel = filter.copy(traitSet, input, newCondition);
     } else {
       newFilterRel =
           relBuilder.push(project.getInput()).filter(newCondition).build();
@@ -180,6 +183,13 @@ public class FilterProjectTransposeRule extends RelOptRule {
             : relBuilder.push(newFilterRel)
                 .project(project.getProjects(), project.getRowType().getFieldNames())
                 .build();
+
+    if (newCondition.isAlwaysFalse() && newFilterRel.getInputs().stream()
+        .map(rel -> rel instanceof HepRelVertex ? ((HepRelVertex) rel).getCurrentRel() : rel)
+        .map(RelOptUtil::getVariablesUsed)
+        .allMatch(Collection::isEmpty)) {
+      newProjRel = relBuilder.push(newProjRel).empty().build();
+    }
 
     call.transformTo(newProjRel);
   }
